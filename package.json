@@ -1,0 +1,24 @@
+{
+  "name": "overflow",
+  "version": "1.0.0",
+  "description": "Construct complex data-intensive flows by Node.js stream composition",
+  "main": "index.js",
+  "scripts": {
+    "test": "node_modules/mocha/bin/mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/avinoamr/overflow.git"
+  },
+  "keywords": [
+    "stream",
+    "transform",
+    "functional"
+  ],
+  "author": "Roi Avinoam <avinoamr@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/avinoamr/overflow/issues"
+  },
+  "homepage": "https://github.com/avinoamr/overflow"
+}
