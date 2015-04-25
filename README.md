@@ -124,7 +124,7 @@ overflow()
     })
 ```
 
-##### .filter( filterFn )
+##### `.filter( filterFn )`
 
 Convenient method. Adds a new substream that filters the data as it streams in.
 
