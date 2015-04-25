@@ -65,6 +65,8 @@ overflow()
 ------
 ##### overflow()
 
+> **overflow()**
+
 Overflow stream constructor
 
 > All overflow streams are in objectMode, with a default highWaterMark of 16.
@@ -94,7 +96,9 @@ s.read() // null
 > Errors always propagate upwards. So a substream emitting error events will cause the wrapping Overflow stream to emit the same errors.
 
 ------
-##### .substream( stream )
+##### .substream()
+
+> **.substream**( stream )
 
 * **stream** a Duplex Stream object
 * returns the external Overflow stream
@@ -117,8 +121,7 @@ function createTransform() {
 }
 ```
 
-------
-##### .substream( transformFn [, flushFn ] )
+> .**substream**( transformFn [, *flushFn* ] )
 
 Overloaded `.substream()` method for building Transform streams on the fly. 
 
