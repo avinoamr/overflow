@@ -48,6 +48,7 @@ overflow()
 
 > *How Overflow knows if it's sync or async*: it depends on the function definition. If it accepts a last argument for the callback, then it's async.
 
+------
 ##### overflow()
 
 Overflow stream constructor
@@ -78,6 +79,7 @@ s.read() // null
 
 > Errors always propagate upwards. So a substream emitting error events will cause the wrapping Overflow stream to emit the same errors.
 
+------
 ##### .substream( stream )
 
 * **stream** a Duplex Stream object
@@ -101,6 +103,7 @@ function createTransform() {
 }
 ```
 
+------
 ##### .substream( transformFn [, flushFn ] )
 
 Overloaded `.substream()` method for building Transform streams on the fly. 
@@ -109,41 +112,230 @@ Read about (Transform streams)[https://nodejs.org/api/stream.html#stream_class_s
 
 * **transformFn** transformation function with the following signature:
     - **data** the input data object
-    - [**done**] a callback for ending the transform, accepts an error and any output data that should be pushed
+    - [**done**]  callback function, accepts: an error and any output data that should be pushed
 * **flushFn** method that runs after all of the data is transform
-    - [**done**] a callback for ending the flush, accepts an error and any output data that should be pushed
+    - [**done**]  callback function, accepts: an error and any output data that should be pushed
 * returns the external Overflow stream
 
 ```javascript
-overflow()
+var s = overflow()
     .substream( function ( data ) {
-        return data * 2; // sync mode
+        return data * 2;
     })
-    .substream( function ( data, done ) {
-        done( null, data / 2 ); // async mode
-    })
+
+s.write( -15 );
+s.read(); // 30
 ```
 
-##### `.filter( filterFn )`
+------
+##### .filter( filterFn )
 
-Convenient method. Adds a new substream that filters the data as it streams in.
+Similar to `Array.filter()`. Adds a new substream that filters the data as it streams in.
 
-* **filterFn** 
-    - **data** the input data object
-    - [**done**] a callback for ending the filter
-        + **err** 
-        + **filter** boolean that indicates if the data should be pushed forward or not
+* **filterFn**
+    - **data**
+    - [**done**] callback function, accepts:
+        + **error** 
+        + **keep** boolean that indicates if the data should be kept in the pipe
 * returns the external Overflow stream
 
 ```javascript
-overflow()
+var s = overflow()
     .filter( function ( data ) {
-        return data.sum > 100; // sync mode
-    })
-    .filter( function ( data, done ) {
-        done( null, data.sum < 200 ); // async mode
-    })
+        return data.sum > 100;
+    });
+
+s.write( 50 );
+s.read() // null
+
+s.write( 150 );
+s.read(); // 150
 ```
 
+------
+##### .skip( predicateFn )
+
+Adds a new substream that skips some of the data by not passing it through the following substreams, but pass it forward directly to the external Overflow stream. This is useful for creating conditional pipes.
+
+* **predicateFn**
+    - **data**
+    - [**done**] callback function, accepts:
+        + **error** 
+        + **skip** boolean that indicates if the data should be pushed as-is to the end of the pipeline
+* returns the external Overflow stream
+
+```javascript
+var s = overflow()
+    .map( Math.abs ) // runs on all input
+    .skip( function ( data ) {
+        return data != 0
+    })
+    .map( function ( data ) {
+        return 1 / data; // runs only on input != 0
+    }); 
+
+s.write( 2 );
+s.read(); // 0.5
+
+s.write( -2 );
+s.read(); // 0.5
+
+s.write( 0 );
+s.read(); // 0
+```
+
+------
+##### .map( mapFn )
+
+Similar to `Array.map()`. Adds a new substream that maps the data as it streams in.
+
+* **mapFn** the mapper function
+    - **data** 
+    - [**done**] callback function, accepts:
+        + **error**
+        + **mapped** the mapped output object
+* returns the external Overflow stream
+
+```javascript
+var s = overflow()
+    .map( function ( data ) {
+        return Math.abs( data ) // sync mode
+    });
+
+s.write( -30 );
+s.read(); // 30
+```
+
+------
+##### .reduce( reduceFn, initial )
+
+Similar to `Array.reduce()`. Adds a new substream that reduces the data as it streams in.
+
+* **reduceFn** the reduction function
+    - - **current** the recently updated value
+    - **data**
+    - [ **done** ] callback function, accepts:
+        + **error**
+        + **value** new value
+* **initial** the initial value to start with
+* returns the external Overflow stream
+
+```javascript
+var s = overflow()
+    .reduce( function ( current, data ) {
+        return current + data; // sync mode
+    }, 0 )
+
+s.write( 10 );
+s.write( 20 );
+s.write( 30 );
+s.end();
+s.read() // 50
+```
+
+------
+##### .every( predicateFn )
+
+Similar to `Array.every()`. Adds a new substream that checks if all of the data meet some predicate criteria, as it streams in.
+
+* **predicateFn** the matching function
+    - **data**
+    - [ **done** ] callback function, accepts
+        + **error**
+        + **match** boolean to indicate if the data meets the criteria
+* returns the external Overflow stream
+
+```javascript
+var s = overflow()
+    .every( function ( data ) {
+        return data > 10
+    })
+
+s.write( 20 );
+s.end( 5 );
+s.read(); // false
+```
+
+------
+##### .some( predicateFn )
+
+Similar to `Array.some()`. Adds a new substream that checks if any of the data meet some predicate criteria, as it streams in.
+
+* **predicateFn** the matching function
+    - **data**
+    - [ **done** ] callback function, accepts
+        + **error**
+        + **match** boolean to indicate if the data meets the criteria
+* returns the external Overflow stream
+
+```javascript
+var s = overflow()
+    .some( function ( data ) {
+        return data > 10
+    })
+s.write( 20 );
+s.end( 5 );
+s.read() // true
+```
+
+------
+##### .each( fn )
+
+Similar to `Array.forEach()`. Adds a new substream that passes all of the data through the provided function, without modifying it. The input data will pass through as is to the output data. This is mostly useful for side-effects.
+
+* **fn**
+    - **data**
+    - [ **done** ] callback function, accepts
+        + **error**
+* returns the external Overflow stream
+
+```javascript
+var s = overflow()
+    .each( console.log );
+
+s.write( 10 ); // side effects: console.log( 10 )
+s.read(); // 10
+```
+
+------
+##### .slice( begin [, end ] )
+
+Similar to `Array.slice()`. Adds a new substream that only outputs a slice of the input data.
+
+* **begin** integer. the index of the lower bound of the slice
+* **end** integer. the index of the upper bound of the slice. If omitted, end is Infinity. Negative values not supported.
+* returns the external Overflow stream
+
+```javascript
+var s = overflow()
+    .slice( 1, 2 );
+
+s.write( 1 );
+s.write( 2 );
+s.write( 3 );
+
+s.read(); // 2
+s.read(); // null. stream ended
+```
+
+------
+##### .concat( readable )
+
+Similar to `Array.concat()`. Adds a new pass-through substream that also reads all of the data from the provided `readable` stream. It can also be used to conveniently create readable overflow streams.
+
+* **readable** Readable stream, Array of data, or a function that generates data (acts like `Readable._read`)
+* returns the external Overflow stream
+
+```javascript
+var s = overflow()
+    .concat( [ 3, 4 ] )
+
+s.write( 1 )
+s.end();
+s.read(); // 1
+s.read(); // 3
+s.read(); // 4
+s.read(); // null, stream ended
+```
 
 

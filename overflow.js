@@ -59,8 +59,6 @@ Stream.prototype.resize = function ( n ) {
     return this;
 }
 
-Stream.prototype.through = 
-Stream.prototype.transform = 
 Stream.prototype.substream = function ( substream, flush ) {
     // in-line function constructs transform substreams
     if ( typeof substream == "function" ) {
@@ -94,29 +92,46 @@ Stream.prototype.substream = function ( substream, flush ) {
     }
 
     // re-pipe the substreams to plug this through at the end
+    substream.parent = this;
     this.last
         .unpipe( this.r )
         .pipe( substream )
         .on( "error", this.emit.bind( this, "error" ) ) // propagate errors
         .pipe( this.r );
 
-    this.emit( "through", substream );
+    substream.emit( "substream", this );
     this.last = substream
     return this;
 }
 
 Stream.prototype.filter = function ( fn ) {
     fn = toAsync( fn, 2 )
-    return this.through( function ( data, done ) {
+    return this.substream( function ( data, done ) {
         return fn.call( this, data, function ( err, keep ) {
             return done( err, keep ? data : undefined );
         })
     });
 }
 
+Stream.prototype.skip = function ( fn ) {
+    fn = toAsync( fn, 2 )
+    var r = this.r;
+    return this.substream( function ( data, done ) {
+        return fn.call( this, data, function ( err, skip ) {
+            if ( err ) return done( err );
+            if ( skip ) {
+                r.write( data );
+                done();
+            } else {
+                done( null, data )
+            }
+        }.bind( this ) )
+    });
+}
+
 Stream.prototype.map = function ( fn ) {
     fn = toAsync( fn, 2 )
-    return this.through( function ( data, done ) {
+    return this.substream( function ( data, done ) {
         return fn.call( this, data, function ( err, mapped ) {
             return done( err, mapped );
         })
@@ -125,7 +140,7 @@ Stream.prototype.map = function ( fn ) {
 
 Stream.prototype.reduce = function ( fn, memo ) {
     fn = toAsync( fn, 3 )
-    return this.through( function ( data, done ) {
+    return this.substream( function ( data, done ) {
         return fn.call( this, memo, data, function ( err, _memo ) {
             memo = _memo;
             done( err );
@@ -141,7 +156,7 @@ Stream.prototype.reduce = function ( fn, memo ) {
 Stream.prototype.every = function ( fn ) {
     fn = toAsync( fn, 2 )
     var res = true;
-    return this.through( function ( data, done ) {
+    return this.substream( function ( data, done ) {
         return fn.call( this, data, function ( err, _res ) {
             res = res && _res;
             done( err );
@@ -155,7 +170,7 @@ Stream.prototype.every = function ( fn ) {
 Stream.prototype.some = function ( fn ) {
     fn = toAsync( fn, 2 )
     var res = false;
-    return this.through( function ( data, done ) {
+    return this.substream( function ( data, done ) {
         return fn.call( this, data, function ( err, _res ) {
             res = res || _res;
             done( err );
@@ -168,7 +183,7 @@ Stream.prototype.some = function ( fn ) {
 
 Stream.prototype.each = function ( fn ) {
     fn = toAsync( fn, 2 )
-    return this.through( function ( data, done ) {
+    return this.substream( function ( data, done ) {
         return fn.call( this, data, function ( err ) {
             done( err, data );
         })
@@ -185,8 +200,38 @@ Stream.prototype.slice = function ( begin, end ) {
     })
 }
 
+Stream.prototype.concat = function ( readable ) {
+    if ( Array.isArray( readable ) ) {
+        var data = [].concat( readable ).concat([ null ])
+        readable = function () {
+            this.push( data.shift() );
+        }
+    }
 
-var syncfns = [ JSON.parse, JSON.stringify ];
+    var options = { objectMode: true, highWaterMark: 16 };
+    if ( typeof readable == "function" ) {
+        var fn = readable;
+        readable = new stream.Readable( options );
+        readable._read = fn;
+    }
+
+    var substream = new stream.PassThrough({ objectMode: true, highWaterMark: 16 });
+    var piped = false;
+    substream.end = function () {
+        delete this.end;
+        readable.pipe( this );
+    }
+
+    return this.substream( substream );
+}
+
+
+
+var syncfns = [ 
+    JSON.parse, JSON.stringify, 
+    console.log, console.error, console.warn, console.info, 
+    Math.abs, Math.floor, Math.ceil, Math.round, Math.sqrt
+];
 function toAsync ( fn, expecting, context ) {
     if ( syncfns.indexOf( fn ) != -1 ) {
         expecting = Infinity; // force turning it to async

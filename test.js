@@ -36,7 +36,7 @@ describe( "Overflow", function () {
         var results = [];
         reader
             .pipe( overflow() )
-            .through( double_ )
+            .substream( double_ )
             .on( "data", results.push.bind( results ) )
             .on( "end", function () {
                 assert.deepEqual( results, [ 2, 4, 6, 8, 10 ] );
@@ -59,7 +59,7 @@ describe( "Overflow", function () {
             })
         }
 
-        var s = overflow().through( double_ );
+        var s = overflow().substream( double_ );
 
         double_.on( "finish", function () {
             assert.deepEqual( written, [ 1, 2, 3, 4, 5 ] );
@@ -116,7 +116,7 @@ describe( "Overflow", function () {
                 assert.equal( err.message, "test" );
                 done();
             })
-            .through( function ( d, done ) {
+            .substream( function ( d, done ) {
                 done( new Error( "test" ) )
             })
             .read();
@@ -280,6 +280,47 @@ describe( "Overflow", function () {
             .on( "data", results.push.bind( results ) )
             .on( "end", function () {
                 assert.deepEqual( results, [ 3, 4 ] )
+                done();
+            })
+    })
+
+    it( ".concat()", function ( done ) {
+        var reader = new stream.Readable({ objectMode: true });
+        var data = [ 1, 2, 3, 4, 5 ];
+        reader._read = function () {
+            this.push( data.shift() || null );
+        }
+
+        var results = [];
+        reader
+            .pipe( overflow() )
+            .concat( [ 6, 7, 8 ])
+            .on( "data", results.push.bind( results ) )
+            .on( "end", function () {
+                assert.deepEqual( results, [ 1, 2, 3, 4, 5, 6, 7, 8 ] )
+                done();
+            })
+    })
+
+    it( ".skip()", function ( done ) {
+        var reader = new stream.Readable({ objectMode: true });
+        var data = [ 1, 2, 3, 4, 5 ];
+        reader._read = function () {
+            this.push( data.shift() || null );
+        }
+
+        var results = [];
+        reader
+            .pipe( overflow() )
+            .skip( function ( data ) {
+                return data < 4;
+            })
+            .map( function ( data ) {
+                return data * 2
+            })
+            .on( "data", results.push.bind( results ) )
+            .on( "end", function () {
+                assert.deepEqual( results, [ 1, 2, 3, 8, 10 ] );
                 done();
             })
     })
