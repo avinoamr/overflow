@@ -115,12 +115,11 @@ Stream.prototype.filter = function ( fn ) {
 
 Stream.prototype.skip = function ( fn ) {
     fn = toAsync( fn, 2 )
-    var r = this.r;
     return this.substream( function ( data, done ) {
         return fn.call( this, data, function ( err, skip ) {
             if ( err ) return done( err );
             if ( skip ) {
-                r.write( data );
+                this.parent.r.write( data );
                 done();
             } else {
                 done( null, data )
