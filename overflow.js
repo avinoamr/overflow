@@ -64,14 +64,14 @@ Stream.prototype.transform =
 Stream.prototype.substream = function ( substream, flush ) {
     // in-line function constructs transform substreams
     if ( typeof substream == "function" ) {
-        var transform = substream;
+        var transform = toAsync( substream, 2 );
         substream = new stream.Transform({ objectMode: true, highWaterMark: 16 });
         substream._transform = function ( data, encoding, done ) {
             return transform.call( this, data, done );
         }
 
         if ( typeof flush == "function" ) {
-            substream._flush = flush;
+            substream._flush = toAsync( flush, 1 );
         }
     }
 
@@ -93,6 +93,7 @@ Stream.prototype.substream = function ( substream, flush ) {
 }
 
 Stream.prototype.filter = function ( fn ) {
+    fn = toAsync( fn, 2 )
     return this.through( function ( data, done ) {
         return fn.call( this, data, function ( err, keep ) {
             return done( err, keep ? data : undefined );
@@ -101,6 +102,7 @@ Stream.prototype.filter = function ( fn ) {
 }
 
 Stream.prototype.map = function ( fn ) {
+    fn = toAsync( fn, 2 )
     return this.through( function ( data, done ) {
         return fn.call( this, data, function ( err, mapped ) {
             return done( err, mapped );
@@ -109,6 +111,7 @@ Stream.prototype.map = function ( fn ) {
 }
 
 Stream.prototype.reduce = function ( fn, memo ) {
+    fn = toAsync( fn, 3 )
     return this.through( function ( data, done ) {
         return fn.call( this, memo, data, function ( err, _memo ) {
             memo = _memo;
@@ -123,6 +126,7 @@ Stream.prototype.reduce = function ( fn, memo ) {
 }
 
 Stream.prototype.every = function ( fn ) {
+    fn = toAsync( fn, 2 )
     var res = true;
     return this.through( function ( data, done ) {
         return fn.call( this, data, function ( err, _res ) {
@@ -136,6 +140,7 @@ Stream.prototype.every = function ( fn ) {
 }
 
 Stream.prototype.some = function ( fn ) {
+    fn = toAsync( fn, 2 )
     var res = false;
     return this.through( function ( data, done ) {
         return fn.call( this, data, function ( err, _res ) {
@@ -149,6 +154,7 @@ Stream.prototype.some = function ( fn ) {
 }
 
 Stream.prototype.each = function ( fn ) {
+    fn = toAsync( fn, 2 )
     return this.through( function ( data, done ) {
         return fn.call( this, data, function ( err ) {
             done( err, data );
@@ -167,7 +173,33 @@ Stream.prototype.slice = function ( begin, end ) {
 }
 
 
+var syncfns = [ JSON.parse, JSON.stringify ];
+function toAsync ( fn, expecting, context ) {
+    if ( syncfns.indexOf( fn ) != -1 ) {
+        expecting = Infinity; // force turning it to async
+    }
 
+    if ( context ) {
+        fn = fn.bind( context )
+    }
+
+    var newfn = fn;
+    if ( fn.length < expecting ) {
+        newfn = function () {
+            var done = [].slice.call( arguments, -1 ).pop();
+            var args = [].slice.call( arguments, 0, -1 );
+            var err;
+            try {
+                var ret = fn.apply( context, args )
+            } catch ( _err ) {
+                err = _err;
+            }
+            done( err, ret );
+        }
+    }
+
+    return newfn;
+}
 
 function maybeEndWriter ( stream ) {
     var state = stream._writableState

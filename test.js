@@ -103,7 +103,7 @@ describe( "Overflow", function () {
         setTimeout( done, 10 ); // 10ms went by without an assertion error
     })
 
-    it( "propagate errors", function ( done ) {
+    it( "propagates errors", function ( done ) {
         var reader = new stream.Readable({ objectMode: true });
         var data = [ 1, 2, 3, 4, 5 ];
         reader._read = function () {
@@ -120,6 +120,24 @@ describe( "Overflow", function () {
                 done( new Error( "test" ) )
             })
             .read();
+    });
+
+    it( "accepts predefine sync functions", function ( done ) {
+        var reader = new stream.Readable({ objectMode: true });
+        var data = [ '{"n":1}', '{"n":2}', '{"n":3}' ];
+        reader._read = function () {
+            this.push( data.shift() || null );
+        }
+
+        var results = [];
+        reader
+            .pipe( overflow() )
+            .map( JSON.parse )
+            .on( "data", results.push.bind( results ) )
+            .on( "end", function () {
+                assert.deepEqual( results, [ { n: 1 }, { n: 2 }, { n: 3 } ] )
+                done();
+            })
     })
 
     it( ".filter()", function ( done ) {
