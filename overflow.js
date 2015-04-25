@@ -104,15 +104,6 @@ Stream.prototype.substream = function ( substream, flush ) {
     return this;
 }
 
-Stream.prototype.filter = function ( fn ) {
-    fn = toAsync( fn, 2 )
-    return this.substream( function ( data, done ) {
-        return fn.call( this, data, function ( err, keep ) {
-            return done( err, keep ? data : undefined );
-        })
-    });
-}
-
 Stream.prototype.skip = function ( fn ) {
     fn = toAsync( fn, 2 )
     return this.substream( function ( data, done ) {
@@ -125,6 +116,37 @@ Stream.prototype.skip = function ( fn ) {
                 done( null, data )
             }
         }.bind( this ) )
+    });
+}
+
+Stream.prototype.chunk = function ( size, delay ) {
+    var buffer = [], timeout;
+    return this.substream( function ( data ) {
+        // console.log( "ONE?", this.push );
+        clearTimeout( timeout );
+        buffer.push( data );
+        var flush = this._flush.bind( this, function () {} );
+        if ( buffer.length >= size ) {
+            return flush()
+        } else if ( delay ) {
+            timeout = setTimeout( flush, delay );
+        }
+    }, function () {
+        clearTimeout( timeout );
+        var data = buffer.length ? buffer : undefined;
+        buffer = [];
+        if ( data ) {
+            this.push( data );
+        }
+    })
+}
+
+Stream.prototype.filter = function ( fn ) {
+    fn = toAsync( fn, 2 )
+    return this.substream( function ( data, done ) {
+        return fn.call( this, data, function ( err, keep ) {
+            return done( err, keep ? data : undefined );
+        })
     });
 }
 
@@ -247,11 +269,16 @@ function toAsync ( fn, expecting, context ) {
             var args = [].slice.call( arguments, 0, -1 );
             var err;
             try {
-                var ret = fn.apply( context, args )
+                var ret = fn.apply( context || this, args )
             } catch ( _err ) {
                 err = _err;
             }
-            done( err, ret );
+
+            if ( typeof ret === "undefined" ) {
+                done( err );
+            } else {
+                done( err, ret );
+            }
         }
     }
 

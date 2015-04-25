@@ -28,7 +28,7 @@ describe( "Overflow", function () {
             this.push( data.shift() || null );
         }
 
-        double_ = new stream.Transform({ objectMode: true });
+        var double_ = new stream.Transform({ objectMode: true });
         double_._transform = function ( chunk, encoding, cb ) {
             cb( null, chunk * 2 );
         }
@@ -51,7 +51,7 @@ describe( "Overflow", function () {
 
         var doubleFinished = currentFinished = false;
         var written = [];
-        double_ = new stream.Transform({ objectMode: true });
+        var double_ = new stream.Transform({ objectMode: true });
         double_._transform = function ( chunk, encoding, cb ) {
             process.nextTick( function () {
                 written.push( chunk )
@@ -321,6 +321,24 @@ describe( "Overflow", function () {
             .on( "data", results.push.bind( results ) )
             .on( "end", function () {
                 assert.deepEqual( results, [ 1, 2, 3, 8, 10 ] );
+                done();
+            })
+    })
+
+    it( ".chunk()", function ( done ) {
+        var reader = new stream.Readable({ objectMode: true });
+        var data = [ 1, 2, 3, 4, 5 ];
+        reader._read = function () {
+            this.push( data.shift() || null );
+        }
+
+        var results = [];
+        reader
+            .pipe( overflow() )
+            .chunk( 2 )
+            .on( "data", results.push.bind( results ) )
+            .on( "end", function () {
+                assert.deepEqual( results, [ [ 1, 2 ], [ 3, 4 ], [ 5 ] ] )
                 done();
             })
     })

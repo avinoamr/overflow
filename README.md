@@ -338,4 +338,36 @@ s.read(); // 4
 s.read(); // null, stream ended
 ```
 
+------
+##### .chunk( size [, delay ] )
+
+Adds a new substream that chunks data together into lists. Mostly useful for batching data together.
+
+* **size** integer. the maximum chunk size
+* **delay** integer. number of milliseconds to wait before pushing incomplete chunks (smaller than `size`)
+* returns the external Overflow stream
+
+```javascript
+var s = overflow()
+    .chunk( 2 );
+
+s.write( 1 );
+s.write( 2 );
+s.write( 3 );
+s.read(); // [ 1, 2 ]
+s.read(); // null, chunk is incomplete
+
+s.end();
+s.read(); // [ 3 ]
+```
+
+------
+##### .size( n )
+
+Set the internal buffer size (`highWaterMark`) of the stream.
+
+* **size** integer. the new buffer size, both readable and writable.
+
+
+
 
