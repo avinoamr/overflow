@@ -26,6 +26,20 @@ fs.createFileStream( "data" ) // [{ sum: 1}, {sum: 2}, {sum: 3}]
 
 ### API
 
+- [overflow()](#overflow-1) constructor
+- [.substream()](#substream-stream-)
+- [.filter()](#filter-filterfn-)
+- [.skip()](#skip-predicatefn-)
+- [.map()](#map-mapfn-)
+- [.reduce()](#reduce-reducefn-initial-)
+- [.every()](#every-predicatefn-)
+- [.some()](#some-predicatefn-)
+- [.each()](#each-fn-)
+- [.slice()](#slice-begin--end--)
+- [.concat()](#concat-readable-)
+- [.chunk()](#chunk-size--delay--)
+- [.size()](#size-n-)
+
 Overflow streams are an encapsulated pipeline of substreams. They are useful for packaging data-intensive logic within a single stream that can then be piped together to construct even more complex stream flows. 
 
 These streams also expose a bunch of convenient methods that makes it easy to construct these pipes out of simple functions. For example, the `.filter()` acts similar to Array.filter, except that it instead creates a new stream that does the filter as new data streams in. 
@@ -108,7 +122,7 @@ function createTransform() {
 
 Overloaded `.substream()` method for building Transform streams on the fly. 
 
-Read about (Transform streams)[https://nodejs.org/api/stream.html#stream_class_stream_transform_1] to learn more
+Read about [Transform streams](https://nodejs.org/api/stream.html#stream_class_stream_transform_1) to learn more
 
 * **transformFn** transformation function with the following signature:
     - **data** the input data object
