@@ -2,7 +2,7 @@
   "name": "overflow",
   "version": "1.0.0",
   "description": "Construct complex data-intensive flows by Node.js stream composition",
-  "main": "index.js",
+  "main": "overflow.js",
   "scripts": {
     "test": "node_modules/mocha/bin/mocha"
   },
@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/avinoamr/overflow/issues"
   },
-  "homepage": "https://github.com/avinoamr/overflow"
+  "homepage": "https://github.com/avinoamr/overflow",
+  "devDependencies": {
+    "mocha": "^2.2.4"
+  }
 }
