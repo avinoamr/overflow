@@ -48,9 +48,9 @@ overflow()
 
 > *How Overflow knows if it's sync or async*: it depends on the function definition. If it accepts a last argument for the callback, then it's async.
 
-#### overflow()
+##### overflow()
 
-Overflow stream constructor.
+Overflow stream constructor
 
 > All overflow streams are in objectMode, with a default highWaterMark of 16.
 
@@ -78,7 +78,7 @@ s.read() // null
 
 > Errors always propagate upwards. So a substream emitting error events will cause the wrapping Overflow stream to emit the same errors.
 
-#### .substream( stream )
+##### .substream( stream )
 
 * **stream** a Duplex Stream object
 * returns the external Overflow stream
@@ -101,22 +101,49 @@ function createTransform() {
 }
 ```
 
-#### .substream( transformFn [, flushFn ] )
+##### .substream( transformFn [, flushFn ] )
+
+Overloaded `.substream()` method for building Transform streams on the fly. 
+
+Read about (Transform streams)[https://nodejs.org/api/stream.html#stream_class_stream_transform_1] to learn more
 
 * **transformFn** transformation function with the following signature:
-    * **data** the input data object
-    * [**done**] a callback for ending the transform
-
-A convenient method for building Transform streams on the fly. 
+    - **data** the input data object
+    - [**done**] a callback for ending the transform, accepts an error and any output data that should be pushed
+* **flushFn** method that runs after all of the data is transform
+    - [**done**] a callback for ending the flush, accepts an error and any output data that should be pushed
+* returns the external Overflow stream
 
 ```javascript
 overflow()
     .substream( function ( data ) {
         return data * 2; // sync mode
     })
-
-overflow()
     .substream( function ( data, done ) {
-        done( null, data * 2 ); // async mode
+        done( null, data / 2 ); // async mode
     })
 ```
+
+##### .filter( filterFn )
+
+Convenient method. Adds a new substream that filters the data as it streams in.
+
+* **filterFn** 
+    - **data** the input data object
+    - [**done**] a callback for ending the filter
+        + **err** 
+        + **filter** boolean that indicates if the data should be pushed forward or not
+* returns the external Overflow stream
+
+```javascript
+overflow()
+    .filter( function ( data ) {
+        return data.sum > 100; // sync mode
+    })
+    .filter( function ( data, done ) {
+        done( null, data.sum < 200 ); // async mode
+    })
+```
+
+
+

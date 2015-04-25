@@ -71,7 +71,20 @@ Stream.prototype.substream = function ( substream, flush ) {
         }
 
         if ( typeof flush == "function" ) {
-            substream._flush = toAsync( flush, 1 );
+            flush = toAsync( flush, 1 );
+            substream._flush = function ( done ) {
+                return flush.call( this, function ( err ) {
+                    if ( err ) return done( err );
+                    var data = [].slice.call( arguments, 1 );
+                    for ( var i = 0 ; i < data.length ; i += 1 ) {
+                        this.push( data[ i ] )
+                        if ( data[ i ] == null ) {
+                            break;
+                        }
+                    }
+                    done();
+                }.bind( this ))
+            }
         }
     }
 
