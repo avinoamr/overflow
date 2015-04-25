@@ -80,8 +80,8 @@ s.read() // null
 
 #### .substream( stream )
 
-    * *stream* a Duplex Stream object
-    * returns the external Overflow stream
+* **stream** a Duplex Stream object
+* returns the external Overflow stream
 
 Pipes a new Duplex substream at the end of the internal pipeline. 
 
@@ -103,11 +103,9 @@ function createTransform() {
 
 #### .substream( transformFn [, flushFn ] )
 
-    * *transformFn* transformation function with the following signature:
-        * *data* the input data object
-        * [*done*] a callback for ending the transform
-            * *err* the transformation error
-            * all other arguments are used to push the output data
+* **transformFn** transformation function with the following signature:
+    * **data** the input data object
+    * [**done**] a callback for ending the transform
 
 A convenient method for building Transform streams on the fly. 
 
