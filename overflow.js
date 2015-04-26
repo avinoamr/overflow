@@ -20,6 +20,7 @@ function Stream () {
 
     this.r.on( "readable", maybeReadMore( this ) );
     this.r.on( "end", maybeReadMore( this ) );
+    this.r.on( "finish", this.emit.bind( this, "complete" ) );
 
     this.w.pipe( this.r );
 }
