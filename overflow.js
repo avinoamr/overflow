@@ -64,7 +64,8 @@ Stream.prototype.substream = function ( substream, flush ) {
     // in-line function constructs transform substreams
     if ( typeof substream == "function" ) {
         var transform = toAsync( substream, 2 );
-        substream = new stream.Transform({ objectMode: true, highWaterMark: 16 });
+        var size = this._readableState.highWaterMark;
+        substream = new stream.Transform({ objectMode: true, highWaterMark: size });
         substream._transform = function ( data, encoding, done ) {
             return transform.call( this, data, done );
         }
@@ -234,14 +235,15 @@ Stream.prototype.concat = function ( readable ) {
         }
     }
 
-    var options = { objectMode: true, highWaterMark: 16 };
+    var size = this._readableState.highWaterMark;
+    var options = { objectMode: true, highWaterMark: size };
     if ( typeof readable == "function" ) {
         var fn = readable;
         readable = new stream.Readable( options );
         readable._read = fn;
     }
 
-    var substream = new stream.PassThrough({ objectMode: true, highWaterMark: 16 });
+    var substream = new stream.PassThrough({ objectMode: true, highWaterMark: size });
     var piped = false;
     substream.end = function () {
         delete this.end;
