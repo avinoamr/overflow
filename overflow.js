@@ -111,7 +111,11 @@ Stream.prototype.skip = function ( fn ) {
         return fn.call( this, data, function ( err, skip ) {
             if ( err ) return done( err );
             if ( skip ) {
-                this.parent.r.write( data );
+                var ret = this.parent.r.write( data );
+                if ( ret === false ) {
+                    this.cork();
+                    this.parent.r.once( "drain", this.uncork.bind( this ) );
+                }
                 done();
             } else {
                 done( null, data )

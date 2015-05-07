@@ -325,6 +325,51 @@ describe( "Overflow", function () {
             })
     })
 
+    it( ".skip() doesn't overflow the pipe", function ( done ) {
+        var reader = new stream.Readable({ objectMode: true });
+        var data = [];
+        for ( var i = 1 ; i < 99 ; i += 1 ) {
+            data.push( i );
+        }
+        var i = 0;
+        reader._read = function () {
+            process.nextTick( function () {
+                this.push( data[ i++ ] || null );
+            }.bind( this ));
+        }
+
+        var results = [];
+        var writer = new stream.Writable({ objectMode: true, highWaterMark: 1 });
+        writer._write = function ( data, encoding, cb ) {
+            // if ( results.length > 5 ) return; // consume the first 5 items
+            results.push( data );
+            setTimeout( cb, 10 );
+        }
+
+        var s;
+        reader
+            .pipe( s = overflow() )
+            .skip( function ( data ) {
+                return true; // skip everything
+            })
+            .pipe( writer )
+            .on( "finish", function () {
+                assert.deepEqual( data, results );
+                done();
+            });
+
+        var write = s.r.write;
+        s.r.write = function ( d ) {
+            var ws = this._writableState;
+            if ( ws.length > ws.highWaterMark ) {
+                done( "Readable end overflow" );
+                done = function () {};
+            }
+            return write.apply( this, arguments );
+        }
+
+    })
+
     it( ".chunk()", function ( done ) {
         var reader = new stream.Readable({ objectMode: true });
         var data = [ 1, 2, 3, 4, 5 ];

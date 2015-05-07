@@ -1,6 +1,6 @@
 {
   "name": "overflow",
-  "version": "1.1.11",
+  "version": "1.1.2",
   "description": "Construct complex data-intensive flows by Node.js stream composition",
   "main": "overflow.js",
   "scripts": {
