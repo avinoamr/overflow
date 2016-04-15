@@ -28,7 +28,7 @@ fs.createFileStream( "data" ) // [{ sum: 1}, {sum: 2}, {sum: 3}]
 
 - [overflow()](#overflow-1) constructor
 - [.substream()](#substream-stream-)
-- [.unsubstream()](#unsubstream-stream-)
+- [.unsubstream()](#unsubstream)
 - [.filter()](#filter-filterfn-)
 - [.skip()](#skip-predicatefn-)
 - [.map()](#map-mapfn-)
@@ -141,6 +141,7 @@ s.write( -15 );
 s.read(); // 30
 ```
 
+------
 ##### .unsubstream()
 
 Removes the last substream from the pipeline
