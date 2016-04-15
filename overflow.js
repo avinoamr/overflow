@@ -95,6 +95,7 @@ Stream.prototype.substream = function ( substream, flush ) {
 
     // re-pipe the substreams to plug this through at the end
     substream.parent = this;
+    substream.prev = this.last;
     this.last
         .unpipe( this.r )
         .pipe( substream )
@@ -103,6 +104,20 @@ Stream.prototype.substream = function ( substream, flush ) {
 
     substream.emit( "substream", this );
     this.last = substream
+    return this;
+}
+
+Stream.prototype.unsubstream = function () {
+    // pops the last substream from the pipeline
+    var last = this.last;
+    var prev = last.prev;
+    if ( !prev ) {
+        return this;
+    }
+
+    prev.unpipe( last )
+        .pipe( this.r );
+    this.last = prev;
     return this;
 }
 

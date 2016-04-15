@@ -42,7 +42,33 @@ describe( "Overflow", function () {
                 assert.deepEqual( results, [ 2, 4, 6, 8, 10 ] );
                 done();
             });
-    })
+    });
+
+    it( "pops substreams", function ( done ) {
+        var reader = new stream.Readable({ objectMode: true });
+        var data = [ 1, 2, 3, 4, 5 ];
+        reader._read = function () {
+            this.push( data.shift() || null );
+        }
+
+        var double_ = new stream.Transform({ objectMode: true });
+        double_._transform = function ( chunk, encoding, cb ) {
+            cb( null, chunk * 2 );
+        }
+
+        var results = [];
+        reader
+            .pipe( overflow() )
+            .substream( double_ )
+            .unsubstream()
+            .on( "data", results.push.bind( results ) )
+            .on( "end", function () {
+                assert.deepEqual( results, [ 1, 2, 3, 4, 5 ] );
+                done();
+            });
+    });
+
+
 
     it( "finish the underlying stream after .end()", function ( done ) {
         function _done () {

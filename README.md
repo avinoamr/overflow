@@ -28,6 +28,7 @@ fs.createFileStream( "data" ) // [{ sum: 1}, {sum: 2}, {sum: 3}]
 
 - [overflow()](#overflow-1) constructor
 - [.substream()](#substream-stream-)
+- [.unsubstream()](#unsubstream-stream-)
 - [.filter()](#filter-filterfn-)
 - [.skip()](#skip-predicatefn-)
 - [.map()](#map-mapfn-)
@@ -138,6 +139,23 @@ var s = overflow()
 
 s.write( -15 );
 s.read(); // 30
+```
+
+##### .unsubstream()
+
+Removes the last substream from the pipeline
+
+* returns the external Overflow stream
+
+```javascript
+var s = overflow()
+    .substream( function ( data ) {
+        return data * 2;
+    })
+    .unsubstream() // removes the last substream
+
+s.write( -15 );
+s.read(); // -15 
 ```
 
 ------
